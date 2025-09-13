@@ -2,63 +2,92 @@ import { HttpException, HttpStatus, Injectable, NotAcceptableException, NotFound
 import { TaskEntity } from 'src/task/entities/tasnk.entity';
 import { CreateTaskDto } from './DTO/create-task-dto';
 import { UpdateTaskDto } from './DTO/update-task-dto';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class TaskService {
-    private tasks: TaskEntity[] = [
-        {
-            id: 1,
-            name: 'Jogar o lixo',
-            description: 'Jogar o lixo na lixeira até 12h',
-            completed: false,
-        },
-    ];
+    constructor(private prisma: PrismaService) { }
 
-    // Classe privada para buscar o index da task 
-    private findTaskIndex(id: number): number {
-        const taskIndex = this.tasks.findIndex(task => task.id === Number(id));
-        if (taskIndex < 0) {
+
+    // private tasks: TaskEntity[] = [
+    //     {
+    //         id: 1,
+    //         name: 'Jogar o lixo',
+    //         description: 'Jogar o lixo na lixeira até 12h',
+    //         completed: false,
+    //         createdAt: new Date(),
+    //     },
+    // ];
+
+    // Classe privada para se existe ID no banco de dados
+    private async findTaskIndex(id: number) {
+    const taskIndex = await this.prisma.task.findFirst({
+        where: {
+            id: Number(id),
+        }
+    });
+   
+    return taskIndex;
+}
+
+
+    async getTasks(): Promise<TaskEntity[]> { 
+        const allTasks = await this.prisma.task.findMany();
+        return allTasks;
+    }
+
+    async findOne(id: number): Promise<TaskEntity> {
+        const task = await this.prisma.task.findUnique({
+            where: {
+                id: Number(id),
+            }
+        });
+        if (!task) {
             throw new NotFoundException("Task não encontrada");
         }
-        return taskIndex;
+        return task;
     }
 
-
-    getTasks(): TaskEntity[] { 
-        return this.tasks;
-    }
-
-    findOne(id: number): TaskEntity {
-        const taskIndex = this.findTaskIndex(id);
-        return this.tasks[taskIndex];
-    }
-
-    createTask(createTaskDto: CreateTaskDto): CreateTaskDto  {
-        const newId = this.tasks.length + 1;
-        const newTask = {
-            id: newId,
-            ...createTaskDto,
-            completed: false
-
-        };
-
-        this.tasks.push(newTask);
+    async createTask(createTaskDto: CreateTaskDto): Promise<TaskEntity>  {
+        const newTask = await this.prisma.task.create({ 
+            data: {
+                name: createTaskDto.name,
+                description: createTaskDto.description,
+                completed: false,
+                createdAt: new Date(),
+            }
+        });
         return newTask;
     }
 
-    updateTask(id: number, updateTaskDto): UpdateTaskDto {   
-        const taskIndex = this.findTaskIndex(id);
-        this.tasks[taskIndex] = {
-            ...this.tasks[taskIndex],
-            ...UpdateTaskDto,
-        }
-        return this.tasks[taskIndex];
+   async updateTask(id: number, updateTaskDto: UpdateTaskDto) {   
+        const taskIndex = await this.findTaskIndex(id);
+        console.log(taskIndex);
+        if (!taskIndex) {
+            throw new NotFoundException("Task não encontrada");
+        } 
+        const task = await this.prisma.task.update({
+            where: {
+                id:taskIndex.id,
+            },
+            data: updateTaskDto
+            
+        });
+        console.log(task);
+        return task;
     }
 
-    deleteTask(id: number): TaskEntity[]  {
-        const taskIndex = this.findTaskIndex(id);
-        this.tasks.splice(taskIndex, 1);
-        return this.tasks;
+    async deleteTask(id: number): Promise<TaskEntity> {
+        const taskIndex = await this.findTaskIndex(id);
+        if (!taskIndex) {
+            throw new NotFoundException("Task não encontrada");
+        }
+        const task = await this.prisma.task.delete({
+            where: {
+                id:taskIndex.id,
+            },
+        });
+        return task;
     }
 
 
