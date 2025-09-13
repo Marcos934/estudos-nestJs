@@ -3,7 +3,7 @@ import { TaskService } from './task.service';
 import { TaskEntity } from 'src/task/entities/tasnk.entity';
 import { CreateTaskDto } from './DTO/create-task-dto';
 import { UpdateTaskDto } from './DTO/update-task-dto';
-import { promises } from 'dns';
+import { PaginationDto } from '../app/common/dto/pagination.dto';
 
 
 @Controller('tasks')
@@ -12,8 +12,8 @@ export class TaskController {
 
 
     @Get() 
-    getTasks(): any {
-        return this.taskService.getTasks();
+    getTasks(@Query() paginationDto?: PaginationDto): any {
+        return this.taskService.getTasks(paginationDto);
     }
 
     @Get('findOne/:id')

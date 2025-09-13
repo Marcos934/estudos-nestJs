@@ -3,6 +3,7 @@ import { TaskEntity } from 'src/task/entities/tasnk.entity';
 import { CreateTaskDto } from './DTO/create-task-dto';
 import { UpdateTaskDto } from './DTO/update-task-dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { PaginationDto } from 'src/app/common/dto/pagination.dto';
 
 @Injectable()
 export class TaskService {
@@ -31,11 +32,25 @@ export class TaskService {
 }
 
 
-    async getTasks(): Promise<TaskEntity[]> { 
-        const allTasks = await this.prisma.task.findMany();
+    async getTasks(paginationDto?: PaginationDto): Promise<TaskEntity[]> {
+        console.log(paginationDto); 
+        const limit = paginationDto?.limit === 0 ? 10 : paginationDto?.limit;
+        const offset = paginationDto?.offset === 0 ? 0 : paginationDto?.offset;
+        console.log(limit);
+        // console.log(offset);
+
+        const allTasks = await this.prisma.task.findMany(
+            {
+                take: limit,
+                skip: offset, 
+                orderBy: {
+                    createdAt: 'desc',
+                }
+            }
+        );
         return allTasks;
     }
-
+    
     async findOne(id: number): Promise<TaskEntity> {
         const task = await this.prisma.task.findUnique({
             where: {
