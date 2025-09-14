@@ -4,10 +4,14 @@ import { CreateTaskDto } from './DTO/create-task-dto';
 import { UpdateTaskDto } from './DTO/update-task-dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaginationDto } from 'src/app/common/dto/pagination.dto';
+import { RabbitMQService } from 'src/rabbitmq/rabbitmq.service';
 
 @Injectable()
 export class TaskService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private readonly rabbitMQService: RabbitMQService,
+    ) { }
 
 
     // private tasks: TaskEntity[] = [
@@ -22,18 +26,18 @@ export class TaskService {
 
     // Classe privada para se existe ID no banco de dados
     private async findTaskIndex(id: number) {
-    const taskIndex = await this.prisma.task.findFirst({
-        where: {
-            id: Number(id),
-        }
-    });
-   
-    return taskIndex;
-}
+        const taskIndex = await this.prisma.task.findFirst({
+            where: {
+                id: Number(id),
+            }
+        });
+
+        return taskIndex;
+    }
 
 
     async getTasks(paginationDto?: PaginationDto): Promise<TaskEntity[]> {
-        console.log(paginationDto); 
+        console.log(paginationDto);
         const limit = paginationDto?.limit === 0 ? 10 : paginationDto?.limit;
         const offset = paginationDto?.offset === 0 ? 0 : paginationDto?.offset;
         console.log(limit);
@@ -42,7 +46,7 @@ export class TaskService {
         const allTasks = await this.prisma.task.findMany(
             {
                 take: limit,
-                skip: offset, 
+                skip: offset,
                 orderBy: {
                     createdAt: 'desc',
                 }
@@ -50,7 +54,7 @@ export class TaskService {
         );
         return allTasks;
     }
-    
+
     async findOne(id: number): Promise<TaskEntity> {
         const task = await this.prisma.task.findUnique({
             where: {
@@ -63,8 +67,8 @@ export class TaskService {
         return task;
     }
 
-    async createTask(createTaskDto: CreateTaskDto): Promise<TaskEntity>  {
-        const newTask = await this.prisma.task.create({ 
+    async createTask(createTaskDto: CreateTaskDto): Promise<TaskEntity> {
+        const newTask = await this.prisma.task.create({
             data: {
                 name: createTaskDto.name,
                 description: createTaskDto.description,
@@ -72,21 +76,28 @@ export class TaskService {
                 createdAt: new Date(),
             }
         });
+
+        await this.rabbitMQService.publish('tasks_queue', {
+            taskId: newTask.id,
+            action: 'PROCESS_TASK',
+            createdAt: new Date(),
+        });
+
         return newTask;
     }
 
-   async updateTask(id: number, updateTaskDto: UpdateTaskDto) {   
+    async updateTask(id: number, updateTaskDto: UpdateTaskDto) {
         const taskIndex = await this.findTaskIndex(id);
         console.log(taskIndex);
         if (!taskIndex) {
             throw new NotFoundException("Task não encontrada");
-        } 
+        }
         const task = await this.prisma.task.update({
             where: {
-                id:taskIndex.id,
+                id: taskIndex.id,
             },
             data: updateTaskDto
-            
+
         });
         console.log(task);
         return task;
@@ -99,7 +110,7 @@ export class TaskService {
         }
         const task = await this.prisma.task.delete({
             where: {
-                id:taskIndex.id,
+                id: taskIndex.id,
             },
         });
         return task;

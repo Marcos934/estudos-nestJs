@@ -1,0 +1,55 @@
+# Arquivos e pastas que não devem ser copiados para o container Docker
+
+# Dependências do Node.js (serão instaladas no container)
+node_modules
+npm-debug.log*
+
+# Arquivos de build e cache
+dist
+coverage
+.nyc_output
+
+# Arquivos de ambiente local (mantemos .env para produção)
+.env.local
+.env.development
+.env.test
+
+# Arquivos de controle de versão
+.git
+.gitignore
+
+# Arquivos do editor
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Arquivos de log
+logs
+*.log
+
+# Arquivos temporários
+.tmp
+.temp
+
+# Arquivos de teste
+test
+*.spec.ts
+*.test.ts
+jest.config.js
+
+# Documentação
+README.md
+*.md
+
+# Arquivos do Docker
+Dockerfile
+.dockerignore
+
+# Arquivos de configuração de desenvolvimento
+.prettierrc
+eslint.config.mjs
+# tsconfig.json e tsconfig.build.json são necessários para o build
+# tsconfig.json
+# tsconfig.build.json
